@@ -5949,6 +5949,84 @@ exports.connect = function(opt, callback) {
 	meta.socket1.on('clientError', error);
 };
 
+function extractnested(str, minDepth = 0) {
+
+	const parts = [];
+
+	let out = '';
+	let depth = 0;
+	let capturing = false;
+	let capDepth = 0;
+	let buf = '';
+
+	const isOpen = (c) => c === '[' || c === '{';
+	const isClose = (c) => c === ']' || c === '}';
+	const matches = (o, c) => (o === '[' && c === ']') || (o === '{' && c === '}');
+	const stack = [];
+
+	for (let i = 0; i < str.length; i++) {
+		const ch = str[i];
+
+		if (isOpen(ch)) {
+
+			if (!capturing && depth >= minDepth) {
+				capturing = true;
+				capDepth = depth + 1;
+				buf = '';
+			}
+
+			stack.push(ch);
+			depth++;
+
+			if (capturing) buf += ch;
+			else out += ch;
+
+			continue;
+		}
+
+		if (isClose(ch)) {
+
+			const open = stack[stack.length - 1];
+			if (!open || !matches(open, ch))
+				throw new Error(`Mismatched/unbalanced brackets at index ${i}`);
+
+			if (capturing) buf += ch;
+			else out += ch;
+
+			stack.pop();
+			depth--;
+
+			if (capturing && depth < capDepth) {
+
+				const inner = buf.slice(1, -1);
+				const type = buf[0];
+				const startsWithRef = inner.trimStart().startsWith('@');
+				const hasEnumPipe = type === '{' && inner.includes('|');
+
+				if (!startsWithRef && !hasEnumPipe) {
+					const idx = parts.length;
+					out += type + `#${idx}` + (type === '{' ? '}' : ']');
+					parts.push(inner);
+				} else
+					out += buf;
+
+				capturing = false;
+				buf = '';
+			}
+
+			continue;
+		}
+
+		if (capturing) buf += ch;
+		else out += ch;
+	}
+
+	if (stack.length)
+		throw new Error('Unbalanced opening bracket(s)');
+
+	return { text: out, parts };
+}
+
 SP.toJSONSchema = SP.parseSchema = function(name, url) {
 
 	let obj = {};
@@ -5963,19 +6041,11 @@ SP.toJSONSchema = SP.parseSchema = function(name, url) {
 	obj.properties = {};
 
 	let str = this;
-	let nestedtypes = [];
+	let nestedtypes;
 
-	str = str.replace(/\[.*?\]/g, function(text) {
-		if (text.substring(1, 2) === '@')
-			return text;
-		return '[#' + (nestedtypes.push(text.substring(1, text.length - 1)) - 1) + ']';
-	});
-
-	str = str.replace(/\{.*?\}/g, function(text) {
-		if (text.substring(1, 2) === '@')
-			return text;
-		return '{#' + (nestedtypes.push(text.substring(1, text.length - 1)) - 1) + '}';
-	});
+	let extracted = extractnested(str);
+	nestedtypes = extracted.parts;
+	str = extracted.text;
 
 	let prop = str.split(/,|\n/);
 	let required = [];
@@ -6034,8 +6104,12 @@ SP.toJSONSchema = SP.parseSchema = function(name, url) {
 		let isenum = type[0] === '{';
 
 		if (isenum) {
-			tmp = type.substring(2, type.length - 1);
-			tmp = nestedtypes[+tmp];
+
+			if (type[1] === '@' || type[1] === '#') {
+				tmp = type.substring(2, type.indexOf('}'));
+				tmp = nestedtypes[+tmp];
+			} else
+				tmp = type.substring(1, type.indexOf('}'));
 
 			// Nested schema
 			if ((/[:,\s]/).test(tmp)) {
