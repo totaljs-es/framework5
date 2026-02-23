@@ -6026,8 +6026,9 @@ SP.toJSONSchema = SP.parseSchema = function(name, url) {
 		// let type = typename.toLowerCase().trim();
 		let size = 0;
 		let isarr = type[0] === '[';
-		if (isarr)
-			type = type.substring(1, type.length - 1);
+		if (isarr) {
+			type = type.substring(1, type.indexOf(']'));
+		}
 
 		let nestedschema = '';
 		let isenum = type[0] === '{';

@@ -29,6 +29,7 @@
 - replaced `Url.parse()` with `new URL()`
 - fixed `NEWFORK()` method
 - fixed callback with `$` in the `ACTION().callback($)`
+- fixed returing a default JSON schema object in actions
 
 ========================
 0.0.15

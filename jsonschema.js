@@ -662,7 +662,7 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 
 function transform(meta, error, value, stop, path, partial) {
 
-	var output;
+	let output;
 
 	switch (meta.type) {
 		case 'string':

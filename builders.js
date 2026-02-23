@@ -1429,7 +1429,7 @@ ActionCaller.prototype.exec = function() {
 
 		if (!err) {
 			if (action.jsoutput)
-				response = action.jsoutput.transform(response).response;
+				response = action.jsoutput.transform(response).response || {};
 
 			if (action.extend) {
 				if (action.extend.includes('.'))
@@ -1493,7 +1493,7 @@ ActionCaller.prototype.exec = function() {
 			self.cancel();
 			return;
 		}
-		$.query = response.response;
+		$.query = response.response || {};
 	} else
 		$.query = query;
 
@@ -1505,7 +1505,7 @@ ActionCaller.prototype.exec = function() {
 			self.cancel();
 			return;
 		}
-		$.params = response.response;
+		$.params = response.response || {};
 	} else
 		$.params = params;
 
@@ -1515,7 +1515,7 @@ ActionCaller.prototype.exec = function() {
 			self.cancel();
 			return;
 		}
-		$.payload = response.response;
+		$.payload = response.response || {};
 	} else
 		$.payload = payload;
 
