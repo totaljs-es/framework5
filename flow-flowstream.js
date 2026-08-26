@@ -1159,11 +1159,15 @@ function init_current(meta, callback, nested) {
 						flow.proxy.refreshmeta();
 
 						// Reset activities
+						flow.activities = {};
+
+						/*
 						for (let key of changes.removed)
 							delete flow.activities[key];
 
 						for (let key of changes.inserted)
 							delete flow.activities[key];
+						*/
 
 						if (flow.proxy.online) {
 							flow.proxy.send({ TYPE: 'flow/components', data: flow.components(true) });
@@ -1257,12 +1261,7 @@ function init_current(meta, callback, nested) {
 						msg.error = err ? err.toString() : null;
 						if (msg.callbackid !== -1)
 							Parent.postMessage(msg);
-
-						for (let key in flow.meta.flow) {
-							if (flow.meta.flow[key].component === msg.id)
-								delete flow.activities[key];
-						}
-
+						flow.activities = {};
 						flow.redraw();
 						flow.save();
 
@@ -2084,6 +2083,20 @@ function MAKEFLOWSTREAM(meta) {
 		timeoutrefresh = setTimeout(refresh_components_force, 700);
 	};
 
+	var refresh_activities = function(comid) {
+		let is = false;
+		for (let key in flow.meta.flow) {
+			let instance = flow.meta.flow[key];
+			if (instance.component === comid) {
+				if (flow.activities[key]) {
+					delete flow.activities[key];
+					is = true;
+				}
+			}
+		}
+		is && flow.proxy.send({ TYPE: 'flow/activities', data: flow.activities }, 1);
+	};
+
 	flow.rpc = function(name, data, callback) {
 		if (Parent) {
 			var callbackid = callback ? (CALLBACKID++) : -1;
@@ -2455,6 +2468,7 @@ function MAKEFLOWSTREAM(meta) {
 					flow.proxy.online && flow.proxy.send(msg, 1, clientid);
 					callback && callback(msg);
 					refresh_components();
+					refresh_activities(msg.id);
 					save();
 				}, ASFILES);
 				break;
@@ -2475,6 +2489,7 @@ function MAKEFLOWSTREAM(meta) {
 
 				flow.unregister(msg.id, function() {
 					refresh_components();
+					refresh_activities(msg.id);
 					save();
 				});
 
@@ -2773,17 +2788,18 @@ function MAKEFLOWSTREAM(meta) {
 			flow.activities[id] = {};
 
 		if (flow.activities[id][key]) {
-			if (flow.activities[id][key].value === progress)
+			if ((progress != null && flow.activities[id][key].value === progress) && flow.activities[key][key].name === name)
 				return;
 		} else
 			 flow.activities[id][key] = { name: name };
 
-		flow.activities[id][key].value = progress;
+		if (progress != null)
+			flow.activities[id][key].value = progress;
 
-		if (!name || progress === 100 || progress == null || progress == -1) {
-			delete instance.activities[id][key];
-			progress = null;
-		}
+		if (name)
+			flow.activities[id][key].name = name;
+		else
+			delete flow.activities[id][key];
 
 		flow.proxy.online && flow.proxy.send({ TYPE: 'flow/activity', id: instance.id, name: name, key: key, value: progress });
 		flow.$events.activity && flow.emit('activity', instance, key, name, progress);
