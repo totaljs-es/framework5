@@ -947,9 +947,9 @@ FP.onstatus = function(a, b, c, d) {
 	this.main.$events && this.main.$events.status && this.main.emit('status', this, a, b, c, d);
 };
 
-FP.onprogress = function(name, percentage, uid) {
+FP.onactivity = function(key, name, percentage) {
 	// this == instance
-	this.main.$events && this.main.$events.progress && this.main.emit('progress', this, name, percentage, uid);
+	this.main.$events && this.main.$events.activity && this.main.emit('activity', this, key, name, percentage);
 };
 
 FP.onerror = function(a, b, c, d) {
@@ -1334,7 +1334,7 @@ FP.rewrite = function(data, callback) {
 		}, function() {
 			// Loads design
 			self.inc(0);
-			self.use(data.design, function(err) {
+			self.use(data.design, function(err, changes) {
 
 				if (data.variables)
 					self.loadvariables(F.TUtils.clone(data.variables));
@@ -1342,7 +1342,7 @@ FP.rewrite = function(data, callback) {
 				self.inc(0);
 				err && error.push(err);
 				self.clean();
-				callback && callback(err);
+				callback && callback(err, changes);
 			});
 		});
 	});
@@ -1435,6 +1435,11 @@ FP._use = function(schema, callback, reinit, insert) {
 	// schema.COMPONENT_ID.connections = { '0': [{ id: 'COMPONENT_ID', index: '2' }] }
 
 	const err = new F.ErrorBuilder();
+	let changes = {
+		inserted: [],
+		updated: [],
+		removed: []
+	};
 
 	if (schema) {
 
@@ -1494,6 +1499,7 @@ FP._use = function(schema, callback, reinit, insert) {
 					tmp.ts = ts;
 					tmp.newbie = true;
 				}
+				changes.inserted.push(key);
 			} else {
 				fi.connections = instance.connections;
 				fi.x = instance.x;
@@ -1515,6 +1521,7 @@ FP._use = function(schema, callback, reinit, insert) {
 					fi.configure && fi.configure(fi.config);
 					self.onreconfigure && self.onreconfigure(fi, true);
 					self.$events.configure && self.emit('configure', fi);
+					changes.updated.push(key);
 				}
 			}
 
@@ -1538,6 +1545,7 @@ FP._use = function(schema, callback, reinit, insert) {
 								self.onerror.call(instance, e, 'instance_close', key);
 							}
 							delete self.meta.flow[key];
+							changes.removed.push(key);
 						}
 					}
 				}
@@ -1567,7 +1575,7 @@ FP._use = function(schema, callback, reinit, insert) {
 			self.inc(-1);
 			self.cleanforce();
 			self.$events.schema && self.emit('schema', self.meta.flow);
-			callback && callback(err.length ? err : null);
+			callback && callback(err.length ? err : null, changes);
 
 		});
 
@@ -1625,7 +1633,7 @@ FP.initcomponent = function(key, component) {
 	instance.main = self;
 	instance.dashboard = self.ondashboard;
 	instance.status = self.onstatus;
-	instance.progress = self.onprogress;
+	instance.activity = self.onactivity;
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;

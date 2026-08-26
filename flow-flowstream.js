@@ -1154,16 +1154,22 @@ function init_current(meta, callback, nested) {
 					for (var key in msg.data)
 						flow.$schema[key] = msg.data[key];
 
-					flow.rewrite(msg.data, function() {
-
-						// @err {Error}
+					flow.rewrite(msg.data, function(err, changes) {
 
 						flow.proxy.refreshmeta();
+
+						// Reset activities
+						for (let key of changes.removed)
+							delete flow.activities[key];
+
+						for (let key of changes.inserted)
+							delete flow.activities[key];
 
 						if (flow.proxy.online) {
 							flow.proxy.send({ TYPE: 'flow/components', data: flow.components(true) });
 							flow.proxy.send({ TYPE: 'flow/design', data: flow.export() });
 							flow.proxy.send({ TYPE: 'flow/variables', data: flow.variables });
+							flow.proxy.send({ TYPE: 'flow/activities', data: flow.activities });
 						}
 
 					});
@@ -1251,8 +1257,15 @@ function init_current(meta, callback, nested) {
 						msg.error = err ? err.toString() : null;
 						if (msg.callbackid !== -1)
 							Parent.postMessage(msg);
+
+						for (let key in flow.meta.flow) {
+							if (flow.meta.flow[key].component === msg.id)
+								delete flow.activities[key];
+						}
+
 						flow.redraw();
 						flow.save();
+
 					}, ASFILES);
 					break;
 
@@ -1267,8 +1280,8 @@ function init_current(meta, callback, nested) {
 
 				case 'stream/variables':
 					flow.variables = msg.data;
-					for (var key in flow.meta.flow) {
-						var instance = flow.meta.flow[key];
+					for (let key in flow.meta.flow) {
+						let instance = flow.meta.flow[key];
 						instance.variables && instance.variables(flow.variables);
 					}
 					flow.proxy.online && flow.proxy.send({ TYPE: 'flow/variables', data: msg.data });
@@ -1277,8 +1290,8 @@ function init_current(meta, callback, nested) {
 
 				case 'stream/variables2':
 					flow.variables2 = msg.data;
-					for (var key in flow.meta.flow) {
-						var instance = flow.meta.flow[key];
+					for (let key in flow.meta.flow) {
+						let instance = flow.meta.flow[key];
 						instance.variables2 && instance.variables2(flow.variables2);
 					}
 					flow.save();
@@ -2748,21 +2761,32 @@ function MAKEFLOWSTREAM(meta) {
 			sendstatusforce(instance);
 	};
 
-	// component.progress() will execute this method
-	flow.onprogress = function(name, progress, uid) {
+
+	// component.activity() will execute this method
+	flow.activities = {};
+	flow.onactivity = function(key, name, progress) {
 
 		let instance = this;
+		let id = instance.id;
 
-		if (!instance.$progress)
-			instance.$progress = {};
+		if (!flow.activities[id])
+			flow.activities[id] = {};
 
-		let id = uid || name;
+		if (flow.activities[id][key]) {
+			if (flow.activities[id][key].value === progress)
+				return;
+		} else
+			 flow.activities[id][key] = { name: name };
 
-		if (instance.$progress[id] === progress)
-			return;
+		flow.activities[id][key].value = progress;
 
-		flow.proxy.online && flow.proxy.send({ TYPE: 'flow/progress', id: instance.id, name: name, uid: uid, value: progress });
-		flow.$events.progress && flow.emit('progress', instance, name, progress, uid);
+		if (!name || progress === 100 || progress == null || progress == -1) {
+			delete instance.activities[id][key];
+			progress = null;
+		}
+
+		flow.proxy.online && flow.proxy.send({ TYPE: 'flow/activity', id: instance.id, name: name, key: key, value: progress });
+		flow.$events.activity && flow.emit('activity', instance, key, name, progress);
 
 	};
 
@@ -2829,6 +2853,7 @@ function MAKEFLOWSTREAM(meta) {
 				flow.proxy.send({ TYPE: 'flow/components', data: flow.components(true) }, 1, clientid);
 				flow.proxy.send({ TYPE: 'flow/design', data: flow.export() }, 1, clientid);
 				flow.proxy.send({ TYPE: 'flow/errors', data: flow.errors }, 1, clientid);
+				flow.proxy.send({ TYPE: 'flow/activities', data: flow.activities }, 1, clientid);
 				setTimeout(function() {
 					if (!flow.$destroyed) {
 						flow.instances().wait(function(com, next) {
