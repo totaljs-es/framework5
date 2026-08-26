@@ -2281,9 +2281,13 @@ function MAKEFLOWSTREAM(meta) {
 				break;
 
 			case 'save':
-				flow.use(CLONE(msg.data), function(err) {
+				flow.use(CLONE(msg.data), function(err, changes) {
 					msg.error = err ? err.toString() : null;
 					msg.TYPE = 'flow/design';
+
+					for (let key of changes.removed)
+						delete flow.activities[key];
+
 					flow.proxy.online && flow.proxy.send(msg);
 					callback && callback(msg);
 					save();
@@ -2788,7 +2792,7 @@ function MAKEFLOWSTREAM(meta) {
 			flow.activities[id] = {};
 
 		if (flow.activities[id][key]) {
-			if ((progress != null && flow.activities[id][key].value === progress) && flow.activities[key][key].name === name)
+			if ((progress != null && flow.activities[id][key].value === progress) && flow.activities[id][key].name === name)
 				return;
 		} else
 			 flow.activities[id][key] = { name: name };
