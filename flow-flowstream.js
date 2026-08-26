@@ -2798,7 +2798,8 @@ function MAKEFLOWSTREAM(meta) {
 
 		if (name)
 			flow.activities[id][key].name = name;
-		else
+
+		if (!name || progress === 100)
 			delete flow.activities[id][key];
 
 		flow.proxy.online && flow.proxy.send({ TYPE: 'flow/activity', id: instance.id, name: name, key: key, value: progress });
