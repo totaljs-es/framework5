@@ -947,6 +947,11 @@ FP.onstatus = function(a, b, c, d) {
 	this.main.$events && this.main.$events.status && this.main.emit('status', this, a, b, c, d);
 };
 
+FP.onprogress = function(name, percentage, uid) {
+	// this == instance
+	this.main.$events && this.main.$events.progress && this.main.emit('progress', this, name, percentage, uid);
+};
+
 FP.onerror = function(a, b, c, d) {
 	// this == instance
 	this.main.$events && this.main.$events.error && this.main.emit('error', this, a, b, c, d);
@@ -1620,6 +1625,7 @@ FP.initcomponent = function(key, component) {
 	instance.main = self;
 	instance.dashboard = self.ondashboard;
 	instance.status = self.onstatus;
+	instance.progress = self.onprogress;
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
@@ -2026,6 +2032,7 @@ FP.export_instance = function(id) {
 		tmp.connections = F.TUtils.clone(instance.connections);
 		tmp.id = instance.id;
 		tmp.config = F.TUtils.clone(instance.config);
+		tmp.repo = F.TUtils.clone(instance.repo);
 		tmp.component = instance.component;
 		tmp.connected = true;
 		tmp.note = instance.note;
@@ -2052,6 +2059,7 @@ FP.export_component = function(id) {
 		obj.name = com.name;
 		obj.title = com.title;
 		obj.meta = com.meta;
+		obj.npm = com.npm;
 		obj.type = com.type;
 		obj.css = com.ui.css;
 		obj.js = com.ui.js;

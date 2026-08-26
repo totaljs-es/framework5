@@ -2710,7 +2710,7 @@ function MAKEFLOWSTREAM(meta) {
 
 		err += '';
 
-		var obj = {};
+		let obj = {};
 		obj.error = err;
 		obj.id = this.id;
 		obj.ts = new Date();
@@ -2736,7 +2736,7 @@ function MAKEFLOWSTREAM(meta) {
 	// component.status() will execute this method
 	flow.onstatus = function(status, delay) {
 
-		var instance = this;
+		let instance = this;
 
 		if (status != undefined)
 			instance.$status = status;
@@ -2746,6 +2746,24 @@ function MAKEFLOWSTREAM(meta) {
 				instance.$statusdelay = setTimeout(sendstatusforce, delay || 1000, instance);
 		} else
 			sendstatusforce(instance);
+	};
+
+	// component.progress() will execute this method
+	flow.onprogress = function(name, progress, uid) {
+
+		let instance = this;
+
+		if (!instance.$progress)
+			instance.$progress = {};
+
+		let id = uid || name;
+
+		if (instance.$progress[id] === progress)
+			return;
+
+		flow.proxy.online && flow.proxy.send({ TYPE: 'flow/progress', id: instance.id, name: name, uid: uid, value: progress });
+		flow.$events.progress && flow.emit('progress', instance, name, progress, uid);
+
 	};
 
 	// component.dashboard() will execute this method

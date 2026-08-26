@@ -15,6 +15,7 @@
 - removed watcher for the `.flow` files
 - fixed CSS compiler
 - improved FlowStream stats by adding `online` editors
+- extended FlowStream by adding `instance.progress(name, progress, [uid])` method
 
 ========================
 0.0.18
