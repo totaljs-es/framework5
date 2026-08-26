@@ -9,7 +9,7 @@ if (!global.F)
 
 const W = F.Worker;
 const Fork = F.Child.fork;
-const VERSION = 35;
+const VERSION = 36;
 const NOTIFYPATH = '/notify/';
 
 var isFLOWSTREAMWORKER = false;
