@@ -111,6 +111,11 @@ Component.prototype.dashboard = function(instance, msg) {
 		console.log('DASHBOARD', this.name + ':', msg);
 };
 
+Component.prototype.activity = function(instance, msg) {
+	if (this.debugger)
+		console.log('ACTIVITY', this.name + ':', msg);
+};
+
 Component.prototype.throw = function(instance, err) {
 	if (this.debugger)
 		console.log('ERROR', this.name + ':', err);
@@ -279,6 +284,10 @@ Instance.prototype.status = function(msg) {
 	this.module.status(this, msg);
 };
 
+Instance.prototype.activity = function(key, name, value) {
+	this.module.activity(this, { key: key, name: name, value: value });
+};
+
 Instance.prototype.logger = NOOP;
 Instance.prototype.transform = NOOP;
 Instance.prototype.middleware = NOOP;
@@ -300,7 +309,6 @@ exports.compile = function(html, callback) {
 		let opt = {};
 		opt.url = html;
 		opt.callback = function(err, response) {
-			console.log(err, response);
 			if (err)
 				callback(err);
 			else
