@@ -1302,6 +1302,9 @@ exports.newaction = function(name, obj) {
 		obj.url = undefined;
 	}
 
+	if (obj.route === true)
+		obj.route = (obj.user || obj.permissions ? '+' : '') + 'API ?';
+
 	if (obj.route) {
 		if (obj.route.indexOf('-->') === -1)
 			obj.route = obj.route + '  ' + (obj.input ? '+' : '-') + obj.$url + ' --> ' + name;
