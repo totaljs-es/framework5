@@ -17,6 +17,7 @@
 - improved FlowStream stats by adding `online` editors
 - extended FlowStream by adding `instance.activity(key, name, [progress])` method
 - extended `NEWACTION.route` option by adding support for `true` that adds `API ?` value
+- fixed directory in the start information
 
 ========================
 0.0.18

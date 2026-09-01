@@ -1190,7 +1190,7 @@ F.console = function() {
 	// global.THREAD && print('Thread        : ' + global.THREAD);
 	print('====================================================');
 	F.config.$root && print('Root          : ' + F.config.$root);
-	print('Directory     : ' + F.Path.join(process.cwd(), F.Path.sep));
+	print('Directory     : ' + F.Path.join(F.directory, F.Path.sep));
 	print('node_modules  : ' + F.Path.join(nodemodules, F.Path.sep));
 	print('====================================================\n');
 
