@@ -1429,7 +1429,7 @@ ActionCaller.prototype.exec = function() {
 	$.controller = self.controller;
 	$.user = self.options.user;
 	$.config = action.config || EMPTYOBJECT;
-	$.action = action;
+	$.meta = action;
 
 	if (self.options.config) {
 
